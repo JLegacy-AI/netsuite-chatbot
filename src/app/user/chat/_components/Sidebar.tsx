@@ -13,43 +13,31 @@ import {
 } from "@mui/icons-material";
 import { useDrawer } from "./DrawerContext";
 import { useChatContext } from "./ChatContext";
+import axios from "axios";
 
 const drawerWidth = 240;
 
 const Sidebar: React.FC = () => {
   const { open, handleDrawerClose, handleDrawerOpen } = useDrawer();
-  const { createChat, createChatOn, createChatOff } = useChatContext();
-  const items = [
-    "Creating Advanced ChatGPT",
-    "React JS Solutions Discussion",
-    "Netsuite Chatbot Requirements",
-    "Implementing Follow-Up Messages",
-    "NetSuite Chatbot Feature Documentation",
-    "Edit Confirm Button Action",
-    "Soft Skills Q&A Response",
-    "Android XML Table Layout",
-    "Deploy Spleeter Model on SageMaker",
-    "Record Interview Responses",
-    "Flexible Layout Constraints",
-    "Create Donation Website",
-    "Soft Skills Q&A Response",
-    "Android XML Table Layout",
-    "Deploy Spleeter Model on SageMaker",
-    "Record Interview Responses",
-    "Flexible Layout Constraints",
-    "Create Donation Website",
-    "Android XML Table Layout",
-    "Deploy Spleeter Model on SageMaker",
-    "Record Interview Responses",
-    "Flexible Layout Constraints",
-    "Create Donation Website",
-    "Soft Skills Q&A Response",
-    "Android XML Table Layout",
-    "Deploy Spleeter Model on SageMaker",
-    "Record Interview Responses",
-    "Flexible Layout Constraints",
-    "Create Donation Website",
-  ];
+  const { createChat, createChatOn, createChatOff, setChatId } =
+    useChatContext();
+  const [chats, setChats] = React.useState([]);
+
+  React.useEffect(() => {
+    axios
+      .get("/api/user/chat", {
+        params: {
+          id: "669b5238f53e5267a0f8f176",
+        },
+      })
+      .then((res) => {
+        console.log(res.data);
+        setChats(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }, [createChat]);
 
   return (
     <Drawer
@@ -83,15 +71,19 @@ const Sidebar: React.FC = () => {
           height: "100%",
         }}
       >
-        {items.map((item, index) => {
+        {chats.map((item, index) => {
           return (
             <Typography
               variant="body2"
               className="relative min-h-[40px] p-2 border mx-2 rounded-md text-nowrap overflow-x-hidden "
               key={index}
-              onClick={() => createChatOff()}
+              onClick={() => {
+                createChatOff();
+                console.log("Here");
+                setChatId(item._id);
+              }}
             >
-              {item}
+              {item.title}
               <IconButton
                 className="absolute right-0 top-0 bottom-0 rounded-none bg-slate-100"
                 size="small"

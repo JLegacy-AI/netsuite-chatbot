@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import Chat from "@/libs/model/chat.model";
 import { createNewThread, sendMessage } from "@/libs/services/open-ai";
+import { dbConnect } from "@/libs/services/mongoose";
 
 export const GET = async (req: NextRequest) => {
+  await dbConnect();
   try {
     const url = new URL(req.url);
     const userId = url.searchParams.get("id");
@@ -14,7 +16,7 @@ export const GET = async (req: NextRequest) => {
       );
     }
 
-    const chats = await Chat.find({ userId: userId }).select("-messages");
+    const chats = await Chat.find({ userId: userId });
     return NextResponse.json(chats, { status: 200 });
   } catch (error) {
     console.error("Error fetching chat details:", error);
@@ -27,7 +29,10 @@ export const GET = async (req: NextRequest) => {
 
 export const POST = async (req: NextRequest) => {
   try {
+    await dbConnect();
     const { userId, title, initialQuery } = await req.json();
+
+    console.log(userId, title, initialQuery);
 
     if (!userId || !title || !initialQuery) {
       return NextResponse.json(
@@ -58,12 +63,12 @@ export const POST = async (req: NextRequest) => {
 
     newChat.messages.push({
       role: "assistant",
-      content: assistantResponse.content,
+      content: assistantResponse,
     });
 
     await newChat.save();
 
-    return NextResponse.json(newChat, { status: 201 });
+    return NextResponse.json({ response: assistantResponse }, { status: 201 });
   } catch (error) {
     console.error("Error creating new chat and getting response:", error);
     return NextResponse.json(

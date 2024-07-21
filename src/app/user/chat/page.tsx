@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import UserMessageField from "./_components/UserMessageField";
 import { Avatar, Box, IconButton, Typography } from "@mui/material";
+import { MuiMarkdown } from "mui-markdown";
 import {
   Add,
   CreateNewFolderOutlined,
@@ -10,45 +11,74 @@ import {
 import { useDrawer } from "./_components/DrawerContext";
 import { useChatContext } from "./_components/ChatContext";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const chat = [
   {
-    name: "assistant",
-    message: "Hello, how can I help you today?",
+    role: "assistant",
+    content: "Hello, how can I help you today?",
   },
   {
-    name: "user",
-    message: "I'm looking for a new job",
+    role: "user",
+    content: "I'm looking for a new job",
   },
 ];
 
 const Page: React.FC = () => {
   const { open, handleDrawerClose, handleDrawerOpen } = useDrawer();
-  const { createChat, createChatOff, createChatOn } = useChatContext();
+  const { createChat, createChatOff, createChatOn, chatId, setChatId } =
+    useChatContext();
 
   const [messages, setMessages] = useState(chat);
 
+  useEffect(() => {
+    if (chatId && !createChat)
+      axios
+        .get(`/api/user/chat/${chatId}`)
+        .then((res) => {
+          setMessages(res.data.messages);
+        })
+        .then((err) => {
+          // console.log(err);
+        });
+  }, [chatId]);
+
   const handleMessage = async (userMessage: string) => {
-    try {
-      console.log(userMessage);
-
-      const response = await axios.post("/api/user/chat", {
-        userId: "669b5238f53e5267a0f8f176", // Replace with actual user ID
-        title: "Chat Title", // Replace with actual chat title
-        initialQuery: userMessage,
-      });
-
-      const assistantMessage = response.data.messages.find(
-        (msg) => msg.role === "assistant"
-      );
-
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { name: "user", message: userMessage },
-        { name: "assistant", message: assistantMessage.content },
-      ]);
-    } catch (error) {
-      console.error("Error sending message:", error);
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { role: "user", content: userMessage },
+    ]);
+    if (createChat && chatId.length > 0) {
+      axios
+        .post("/api/user/chat", {
+          userId: "669b5238f53e5267a0f8f176",
+          title: "Chat Title",
+          initialQuery: userMessage,
+        })
+        .then((res) => {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { role: "assistant", content: res.data.response },
+          ]);
+        })
+        .catch((err) => {
+          console.log("Error Found");
+        });
+    } else {
+      console.log("Not to Create New Chat");
+      axios
+        .post(`/api/user/chat/${chatId}`, {
+          userQuery: userMessage,
+        })
+        .then((res) => {
+          setMessages((prevMessages) => [
+            ...prevMessages,
+            { role: "assistant", content: res.data.response },
+          ]);
+        })
+        .then((err) => {
+          console.log(err);
+        });
     }
   };
 
@@ -62,7 +92,12 @@ const Page: React.FC = () => {
               <ViewSidebarRounded />
             </IconButton>
             <IconButton size="small">
-              <CreateNewFolderOutlined onClick={() => createChatOn()} />
+              <CreateNewFolderOutlined
+                onClick={() => {
+                  createChatOn();
+                  setChatId("");
+                }}
+              />
             </IconButton>
           </Box>
         ) : (
@@ -102,7 +137,7 @@ const Page: React.FC = () => {
               key={index}
               className="mb-4 w-full border rounded-lg p-5 flex items-center gap-4 max-w-[1000px]"
             >
-              {chatMessage.name === "user" ? (
+              {chatMessage.role === "user" ? (
                 <Avatar
                   sx={{
                     width: "40px",
@@ -119,13 +154,14 @@ const Page: React.FC = () => {
                   }}
                 />
               )}
+
               <Typography
                 variant="body1"
                 className={`${
-                  chatMessage.name === "user" ? "text-right" : "text-left"
+                  chatMessage.role === "user" ? "text-right" : "text-left"
                 } `}
               >
-                {chatMessage.message}
+                <MuiMarkdown>{chatMessage.content}</MuiMarkdown>
               </Typography>
             </Box>
           ))

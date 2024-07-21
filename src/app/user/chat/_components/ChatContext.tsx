@@ -4,6 +4,8 @@ interface ChatContextType {
   createChat: boolean;
   createChatOn: () => void;
   createChatOff: () => void;
+  setChatId: (id: string) => void;
+  chatId: string;
 }
 
 const ChatContext = React.createContext<ChatContextType | undefined>(undefined);
@@ -11,7 +13,8 @@ const ChatContext = React.createContext<ChatContextType | undefined>(undefined);
 export const ChatContextProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [createChat, setCreateChat] = React.useState(false);
+  const [createChat, setCreateChat] = React.useState(true);
+  const [chatId, setChatId] = React.useState("");
 
   const createChatOff = () => {
     setCreateChat(false);
@@ -22,7 +25,9 @@ export const ChatContextProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <ChatContext.Provider value={{ createChat, createChatOff, createChatOn }}>
+    <ChatContext.Provider
+      value={{ createChat, createChatOff, createChatOn, setChatId, chatId }}
+    >
       {children}
     </ChatContext.Provider>
   );

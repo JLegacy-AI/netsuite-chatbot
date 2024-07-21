@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { json } from "stream/consumers";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -18,6 +19,7 @@ export const createNewThread = async () => {
 // Function to send a message and get a response from the OpenAI Assistant
 export const sendMessage = async (threadId, content) => {
   try {
+    console.log("Thread ID:", threadId, "Content:", content);
     const message = await openai.beta.threads.messages.create(threadId, {
       role: "user",
       content: content,
@@ -26,11 +28,8 @@ export const sendMessage = async (threadId, content) => {
     // Start a new run to get the assistant's response
     const run = await startRun(threadId);
 
-    // Wait for the response and get the messages from the thread
-    const responses = await getResponses(threadId);
-
-    // Find the assistant's response in the messages
-    const assistantResponse = responses.find((msg) => msg.role === "assistant");
+    // Poll for run status
+    const assistantResponse = await pollRunStatus(run.id, threadId);
 
     return assistantResponse;
   } catch (error) {
@@ -57,8 +56,7 @@ export const getAssistant = async () => {
 // Function to start a run on a thread
 export const startRun = async (threadId) => {
   try {
-    const run = await openai.beta.threads.runs.create({
-      thread_id: threadId,
+    const run = await openai.beta.threads.runs.create(threadId, {
       assistant_id: process.env.ASSISTANT_ID,
     });
     return run;
@@ -71,11 +69,21 @@ export const startRun = async (threadId) => {
 // Function to get responses from a thread
 export const getResponses = async (threadId) => {
   try {
-    const responses = await openai.beta.threads.messages.list({
-      thread_id: threadId,
-      order: "asc",
+    const response = await openai.beta.threads.messages.list(threadId);
+
+    if (!response || !response.data) {
+      throw new Error("Invalid response format");
+    }
+
+    let messages = [];
+
+    response.body.data.forEach((message) => {
+      messages.push(message.content);
     });
-    return responses.data;
+
+    return {
+      messages,
+    };
   } catch (error) {
     console.error("Error getting responses:", error);
     throw error;
@@ -89,6 +97,29 @@ export const deleteThread = async (threadId) => {
     return result;
   } catch (error) {
     console.error("Error deleting thread:", error);
+    throw error;
+  }
+};
+
+// Polling function to check the run status
+const pollRunStatus = async (runId, threadId) => {
+  try {
+    while (true) {
+      const runStatus = await openai.beta.threads.runs.retrieve(
+        threadId,
+        runId
+      );
+
+      if (runStatus.status === "completed") {
+        const responses = await getResponses(threadId);
+
+        return responses.messages[0][0].text.value;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  } catch (error) {
+    console.error("Error polling run status:", error);
     throw error;
   }
 };
