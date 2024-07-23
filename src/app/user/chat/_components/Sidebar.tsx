@@ -58,7 +58,13 @@ const Sidebar: React.FC = () => {
           <IconButton size="small" onClick={() => handleDrawerClose()}>
             <ViewSidebarRounded />
           </IconButton>
-          <IconButton size="small" onClick={() => createChatOn()}>
+          <IconButton
+            size="small"
+            onClick={() => {
+              createChatOn();
+              setChatId("");
+            }}
+          >
             <CreateNewFolderOutlined />
           </IconButton>
         </Box>

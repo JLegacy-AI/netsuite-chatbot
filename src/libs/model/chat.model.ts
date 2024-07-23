@@ -2,16 +2,15 @@
 import mongoose, { Schema } from "mongoose";
 
 const messageSchema = new Schema({
-  role: { type: String, required: true }, // 'user' or 'assistant'
+  role: { type: String, required: true },
   content: { type: String, required: true },
-  time: { type: Date, default: Date.now }, // Timestamp of the message
+  time: { type: Date, default: Date.now },
 });
 
 const chatSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     title: { type: String, required: true },
-    threadId: { type: String, required: true, unique: true },
     messages: [messageSchema],
   },
   { timestamps: true }

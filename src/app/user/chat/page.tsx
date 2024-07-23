@@ -48,7 +48,12 @@ const Page: React.FC = () => {
       ...prevMessages,
       { role: "user", content: userMessage },
     ]);
-    if (createChat && chatId.length > 0) {
+
+    console.log(createChat, chatId, createChat && chatId.length > 0);
+
+    if (createChat && chatId.length <= 0) {
+      console.log("Hello Jamal");
+
       axios
         .post("/api/user/chat", {
           userId: "669b5238f53e5267a0f8f176",
@@ -71,6 +76,8 @@ const Page: React.FC = () => {
           userQuery: userMessage,
         })
         .then((res) => {
+          console.log(res);
+
           setMessages((prevMessages) => [
             ...prevMessages,
             { role: "assistant", content: res.data.response },

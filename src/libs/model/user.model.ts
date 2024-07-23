@@ -1,4 +1,3 @@
-// libs/models/users.model.js
 import mongoose, { Schema } from "mongoose";
 
 const userSchema = new Schema({

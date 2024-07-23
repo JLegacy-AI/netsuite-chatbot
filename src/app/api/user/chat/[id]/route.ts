@@ -1,6 +1,7 @@
 import Chat from "@/libs/model/chat.model";
 import { NextRequest, NextResponse } from "next/server";
 import { sendMessage } from "@/libs/services/open-ai";
+import axios from "axios";
 
 export const GET = async (req: NextRequest, context: any) => {
   const { params } = context;
@@ -43,19 +44,33 @@ export const POST = async (req: NextRequest, context: any) => {
       return NextResponse.json({ message: "Chat not found" }, { status: 404 });
     }
 
-    const assistantResponse = await sendMessage(chat.threadId, userQuery);
-
-    console.log(assistantResponse);
-
     chat.messages.push({ role: "user", content: userQuery });
+
+    const res = await axios.post(
+      `http://localhost:3000/api/v1/prediction/${process.env.FLOWISE_AI_CHATID}`,
+      {
+        question: userQuery,
+        chatId: chatId,
+      }
+    );
+
+    console.log(res.data);
+
+    if (res.data.text === undefined) {
+      return NextResponse.json(
+        { error: "Error getting response" },
+        { status: 403 }
+      );
+    }
+
     chat.messages.push({
       role: "assistant",
-      content: assistantResponse,
+      content: res.data.text,
     });
 
     await chat.save();
 
-    return NextResponse.json({ response: assistantResponse }, { status: 200 });
+    return NextResponse.json({ response: res.data.text }, { status: 200 });
   } catch (error) {
     console.error("Error sending user query and getting response:", error);
     return NextResponse.json(
@@ -64,6 +79,7 @@ export const POST = async (req: NextRequest, context: any) => {
     );
   }
 };
+
 export const PUT = async (req: NextRequest, context: any) => {
   const { params } = context;
   const chatId = params.id;

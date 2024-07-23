@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import Chat from "@/libs/model/chat.model";
 import { createNewThread, sendMessage } from "@/libs/services/open-ai";
 import { dbConnect } from "@/libs/services/mongoose";
+import axios from "axios";
+import User from "@/libs/model/user.model";
 
 export const GET = async (req: NextRequest) => {
   await dbConnect();
@@ -41,20 +43,30 @@ export const POST = async (req: NextRequest) => {
       );
     }
 
-    const thread = await createNewThread();
+    const user = await User.findById(userId);
 
     const newChat = new Chat({
       userId: userId,
       title,
-      threadId: thread.id,
       messages: [{ role: "user", content: initialQuery }],
     });
 
     await newChat.save();
 
-    const assistantResponse = await sendMessage(thread.id, initialQuery);
+    const _ = await axios.post(
+      `http://localhost:3000/api/v1/prediction/${process.env.FLOWISE_AI_CHATID}`,
+      {
+        question: `My name is ${user.name} & userId is ${user._id}`,
+        chatId: newChat._id,
+      }
+    );
 
-    if (assistantResponse === undefined) {
+    const res = await axios.post(`/api/v1/prediction/${newChat._id}`, {
+      question: initialQuery,
+      chatId: newChat._id,
+    });
+
+    if (res.data.text === undefined) {
       return NextResponse.json(
         { error: "Error getting Response" },
         { status: 403 }
@@ -63,16 +75,16 @@ export const POST = async (req: NextRequest) => {
 
     newChat.messages.push({
       role: "assistant",
-      content: assistantResponse,
+      content: res.data.text,
     });
 
     await newChat.save();
 
-    return NextResponse.json({ response: assistantResponse }, { status: 201 });
+    return NextResponse.json({ response: res.data.text }, { status: 201 });
   } catch (error) {
     console.error("Error creating new chat and getting response:", error);
     return NextResponse.json(
-      { message: "Error creating new chat" },
+      { error: "Error creating new chat" },
       { status: 500 }
     );
   }

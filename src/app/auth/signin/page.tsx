@@ -29,15 +29,17 @@ const Page = () => {
   const router = useRouter();
 
   const handleSubmit = async (values: { email: string; password: string }) => {
-    axios
-      .post("/api/user/auth/signin", values)
-      .then((res) => {
-        toast.success("Sign in successful!");
-        router.push("/user/chat");
-      })
-      .catch((err) => {
-        toast.error(err.response.data.error);
-      });
+    console.log(values);
+
+    // axios
+    //   .post("/api/user/auth/signin", values)
+    //   .then((res) => {
+    //     toast.success("Sign in successful!");
+    //     router.push("/user/chat");
+    //   })
+    //   .catch((err) => {
+    //     toast.error(err.response.data.error);
+    //   });
   };
 
   return (
